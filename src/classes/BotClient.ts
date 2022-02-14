@@ -137,7 +137,7 @@ export default class BotClient extends Client {
     if (msgmetadata) {
       text += `\n`;
       msgmetadata.forEach((opt) => {
-        text += `${prefix}${name} ${opt.name} : ${opt.des}\n`;
+        text += `${prefix} ${name} ${opt.name} : ${opt.des}\n`;
       });
     }
     if (!text || text.length == 0) return undefined;
