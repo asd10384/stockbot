@@ -95,7 +95,7 @@ export default class 역할Command implements Command {
   }
   async msgrun(message: M, args: string[]) {
     if (!(await ckper(message))) return message.channel.send({ embeds: [ emper ] });
-    let guildDB = await MDB.get.guild(message);
+    const guildDB = await MDB.get.guild(message);
     if (args[0] === "목록") return message.channel.send({ embeds: [ this.list(guildDB!) ] }).then(m => client.msgdelete(m, 4));
     if (args[0] === "추가") {
       if (args[1]) {

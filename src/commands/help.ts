@@ -53,14 +53,14 @@ export default class HelpCommand implements Command {
   }
 
   gethelp(): { embeds: MessageEmbed[], components: MessageActionRow[] } {
-    const slashcmdembed = client.mkembed({
-      title: `\` slash (/) 도움말 \``,
-      description: `명령어\n명령어 설명`,
-      color: client.embedcolor
-    });
+    // const slashcmdembed = client.mkembed({
+    //   title: `\` slash (/) 도움말 \``,
+    //   description: `명령어\n명령어 설명`,
+    //   color: client.embedcolor
+    // });
     const msgcmdembed = client.mkembed({
       title: `\` 기본 (${client.prefix}) 도움말 \``,
-      description: `명령어 [같은 명령어]\n명령어 설명`,
+      description: `명령어\n명령어 설명`,
       footer: { text: `PREFIX: ${client.prefix}` },
       color: client.embedcolor
     });
@@ -68,13 +68,13 @@ export default class HelpCommand implements Command {
     handler.commands.forEach((cmd) => {
       if (cmd.slashrun && cmd.visible) {
         cmdlist.push({ label: `/${cmd.name}`, description: `${cmd.information ? cmd.information : cmd.description}`, value: `${cmd.name}` });
-        slashcmdembed.addField(`**/${cmd.name}**`, `${cmd.information ? cmd.information : cmd.description ? cmd.description : "-"}`, true);
+        // slashcmdembed.addField(`**/${cmd.name}**`, `${cmd.information ? cmd.information : cmd.description ? cmd.description : "-"}`, true);
       }
     });
     handler.commands.forEach((cmd) => {
       if (cmd.msgrun && cmd.visible) {
         // cmdlist.push({ label: `${client.prefix}${cmd.metadata.name} [${(cmd.metadata.aliases) ? cmd.metadata.aliases : ''}]`, description: `${cmd.metadata.description}`, value: `${cmd.metadata.name}` });
-        msgcmdembed.addField(`**${client.prefix}${cmd.name}${(cmd.aliases && cmd.aliases.length > 0) ? ` [ ${cmd.aliases} ]` : ""}**`, `${cmd.information ? cmd.information : cmd.description ? cmd.description : "-"}`, true);
+        msgcmdembed.addField(`**${client.prefix} ${cmd.msgmetadata && cmd.msgmetadata.length === 1 ? cmd.msgmetadata[0].name : cmd.name}**`, `${cmd.information ? cmd.information : cmd.description ? cmd.description : "-"}`, true);
       }
     });
     const rowhelp = client.mkembed({
@@ -89,6 +89,6 @@ export default class HelpCommand implements Command {
         .setPlaceholder('명령어를 선택해주세요.')
         .addOptions(cmdlist)
     );
-    return { embeds: [ slashcmdembed, msgcmdembed, rowhelp ], components: [ row ] };
+    return { embeds: [ msgcmdembed, rowhelp ], components: [ row ] };
   }
 }

@@ -26,7 +26,9 @@ const out = {
 export default out;
 
 async function guild_get(msg: M | I | VoiceState | PartialMessage | SelectMenuInteraction) {
-  let guildDB: guild_type | null = await guild_model.findOne({ id: msg.guild?.id! });
+  let guildDB: guild_type | null = await guild_model.findOne({ id: msg.guild!.id! }).catch((err) => {
+    return null;
+  });
   if (guildDB) {
     if (guildDB.name !== msg.guild!.name) {
       guildDB.name = msg.guild!.name;
@@ -35,9 +37,13 @@ async function guild_get(msg: M | I | VoiceState | PartialMessage | SelectMenuIn
     return guildDB;
   } else {
     if (msg.guild?.id) {
-      guildDB = await guild_model.findOne({ id: msg.guild.id });
+      guildDB = await guild_model.findOne({ id: msg.guild.id }).catch((err) => {
+        return null;
+      });
       if (!guildDB) {
-        await guild_model.findByIdAndDelete({ id: msg.guild.id });
+        await guild_model.findByIdAndDelete({ id: msg.guild.id }).catch((err) => {
+          return null;
+        });
         guildDB = new guild_model({});
       }
       guildDB.id = msg.guild.id;
@@ -51,7 +57,9 @@ async function guild_get(msg: M | I | VoiceState | PartialMessage | SelectMenuIn
 }
 
 async function user_get(member: GuildMember) {
-  let userDB: user_type | null = await user_model.findOne({ id: member.user.id });
+  let userDB: user_type | null = await user_model.findOne({ id: member.user.id }).catch((err) => {
+    return null;
+  });
   if (userDB) {
     if (userDB.tag !== member.user.tag || userDB.nickname !== (member.nickname) ? member.nickname : member.user.username) {
       userDB.tag = member.user.tag;
@@ -61,9 +69,13 @@ async function user_get(member: GuildMember) {
     return userDB;
   } else {
     if (member.user.id) {
-      userDB = await user_model.findOne({ id: member.user.id });
+      userDB = await user_model.findOne({ id: member.user.id }).catch((err) => {
+        return null;
+      });
       if (!userDB) {
-        await user_model.findOneAndDelete({ id: member.user.id });
+        await user_model.findOneAndDelete({ id: member.user.id }).catch((err) => {
+          return null;
+        });
         userDB = new user_model({});
       }
       userDB.id = member.user.id;

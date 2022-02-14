@@ -34,7 +34,7 @@ export default class BotClient extends Client {
     }
     this.debug = JSON.parse(process.env.DEBUG!);
     this.token = process.env.DISCORD_TOKEN!;
-    this.prefix = process.env.PREFIX || 'm;';
+    this.prefix = process.env.PREFIX || '!주식';
     this.login();
     this.deletetime = 6000; //초
     this.ttsfilepath = (process.env.TTS_FILE_PATH) ? (process.env.TTS_FILE_PATH.endsWith('/')) ? process.env.TTS_FILE_PATH : process.env.TTS_FILE_PATH+'/' : '';

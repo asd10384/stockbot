@@ -9,7 +9,8 @@ export default async function onMessageCreate (message: Message) {
     const commandName = args.shift()?.toLowerCase();
     if (!commandName || commandName.length === 0) {
       const gethelp = handler.commands.get("help");
-      if (gethelp && gethelp.msgrun) return gethelp.msgrun(message, []);
+      if (gethelp && gethelp.msgrun) gethelp.msgrun(message, []);
+      return client.msgdelete(message, 0);
     }
     const command = handler.commands.get(commandName!) || handler.commands.find((cmd) => cmd.aliases.includes(commandName!));
     try {
