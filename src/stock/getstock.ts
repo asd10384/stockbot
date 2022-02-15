@@ -1,13 +1,15 @@
+import { config } from "dotenv";
 import axios from "axios";
 import { MessageAttachment } from "discord.js";
 import { readdir, unlink } from "fs";
 import nhti from "node-html-to-image";
 import getgetstock2 from "./getgetstock2";
+config();
 
-readdir("./images", (err, files) => {
+readdir(process.env.IMAGE_URL!, (err, files) => {
   if (err) console.error(err);
   files.forEach((file) => {
-    unlink("./images/"+file, (err) => {
+    unlink(process.env.IMAGE_URL!+"/"+file, (err) => {
       if (err) return;
     });
   });
@@ -66,49 +68,6 @@ interface stockdata {
 export var kospi: { name: string[], stocks: stockstype[] } = { name: [], stocks: [] };
 export var kosdaq: { name: string[], stocks: stockstype[] } = { name: [], stocks: [] };
 
-console.log("주식: 주식정보 불러오기");
-setkospi().catch((err) => {
-  return console.log("주식: 코스피 정보 불러오던중 오류발생");
-}).then((val) => {
-  if (val) return console.log("주식: 코스피 정보 불러오기 성공");
-  return console.log("주식: 코스피 정보 불러오기 실패");
-});
-setkosdaq().catch((err) => {
-  return console.log("주식: 코스닥 정보 불러오던중 오류발생");
-}).then((val) => {
-  if (val) return console.log("주식: 코스닥 정보 불러오기 성공");
-  return console.log("주식: 코스닥 정보 불러오기 실패");
-});
-setInterval(() => {
-  setkospi().catch((err) => {
-    return console.log("주식: 코스피 정보 불러오던중 오류발생");
-  }).then((val) => {
-    if (val) return console.log("주식: 코스피 정보 불러오기 성공");
-    return console.log("주식: 코스피 정보 불러오기 실패");
-  });
-  setkosdaq().catch((err) => {
-    return console.log("주식: 코스닥 정보 불러오던중 오류발생");
-  }).then((val) => {
-    if (val) return console.log("주식: 코스닥 정보 불러오기 성공");
-    return console.log("주식: 코스닥 정보 불러오기 실패");
-  });
-}, 1000*60*60*6);
-
-export async function setkospi(): Promise<boolean> {
-  const get = await getstocks("KOSPI");
-  if (!get.stocks) return false;
-  kospi.name = get.stocks.map((stock) => stock.stockName);
-  kospi.stocks = get.stocks;
-  return true;
-}
-export async function setkosdaq(): Promise<boolean> {
-  const get = await getstocks("KOSDAQ");
-  if (!get.stocks) return false;
-  kosdaq.name = get.stocks.map((stock) => stock.stockName);
-  kosdaq.stocks = get.stocks;
-  return true;
-}
-
 async function getstocks(name: "KOSPI" | "KOSDAQ"): Promise<{ err: undefined, stocks: stockstype[] } | { err: string, stocks: undefined }> {
   const totalcheck: { [key: string]: any, data?: stockdata } = await axios.get(`https://m.stock.naver.com/api/stocks/marketValue/${name}`, {
     params: {
@@ -120,13 +79,13 @@ async function getstocks(name: "KOSPI" | "KOSDAQ"): Promise<{ err: undefined, st
   });
   if (!totalcheck.data) return { err: "오류발생", stocks: undefined };
   const totalcount = totalcheck.data.totalCount;
-  const maxpage = Math.ceil(totalcount/50);
+  const maxpage = Math.ceil(totalcount/40);
   var stocklist: stockstype[] = [];
   for (let i=0; i<maxpage; i++) {
     const getstocks: { [key: string]: any, data?: stockdata } = await axios.get(`https://m.stock.naver.com/api/stocks/marketValue/${name}`, {
       params: {
         page: i+1,
-        pageSize: 50
+        pageSize: 40
       }
     }).catch((err) => {
       return { data: undefined };
@@ -163,30 +122,30 @@ export async function getstock(Code: string, checkimg: boolean): Promise<{
     return { data: undefined };
   });
   if (!getstock3 || !getstock3.data) return undefined;
-  var img: any = undefined
+  var img: any = undefined;
   if (checkimg) {
     img = await nhti({
-      output: `./images/${Code}.png`,
+      output: `${process.env.IMAGE_URL!}/A${Code}.png`,
       html: `<html><body>
     <div class="main">
-      <img src="{{url1}}"/>
-      <img src="{{url2}}"/>
+      <img class="ff" src="{{url1}}" />
+      <img class="ss" src="{{url2}}" />
     </div>
     <style>
       body {
         width: 700px;
         height: 594px;
       }
-      img:first-child {
+      .ff {
         margin-top: 5px;
       }
-      img:last-child {
+      .ss {
         margin-top: 5px;
       }
     </style>
   </body></html>`,
       content: {
-        url1: `https://ssl.pstatic.net/imgfinance/chart/item/area/day/${Code}.png`,
+        url1: getstock2.data.chartImageUrl.day,
         url2: `https://ssl.pstatic.net/imgfinance/chart/item/candle/day/${Code}.png`
       }
     }).catch((err) => {
@@ -194,7 +153,7 @@ export async function getstock(Code: string, checkimg: boolean): Promise<{
     });
   }
   if (img) {
-    const file = new MessageAttachment(`images/${Code}.png`);
+    const file = new MessageAttachment(`${process.env.IMAGE_URL!}/A${Code}.png`);
     return {
       code: Code, //코드
       name: getstock.data.stockName, //이름
@@ -264,3 +223,46 @@ function frr(updown: string, num: string): string {
   if (updown === "FALL") return "-"+num;
   return "+"+num;
 }
+export async function setkospi(): Promise<boolean> {
+  const get = await getstocks("KOSPI");
+  if (!get.stocks) return false;
+  kospi.name = get.stocks.map((stock) => stock.stockName);
+  kospi.stocks = get.stocks;
+  return true;
+}
+export async function setkosdaq(): Promise<boolean> {
+  const get = await getstocks("KOSDAQ");
+  if (!get.stocks) return false;
+  kosdaq.name = get.stocks.map((stock) => stock.stockName);
+  kosdaq.stocks = get.stocks;
+  return true;
+}
+
+
+console.log("주식: 주식정보 불러오기");
+setkospi().catch((err) => {
+  return console.log("주식: 코스피 정보 불러오던중 오류발생");
+}).then((val) => {
+  if (val) return console.log("주식: 코스피 정보 불러오기 성공");
+  return console.log("주식: 코스피 정보 불러오기 실패");
+});
+setkosdaq().catch((err) => {
+  return console.log("주식: 코스닥 정보 불러오던중 오류발생");
+}).then((val) => {
+  if (val) return console.log("주식: 코스닥 정보 불러오기 성공");
+  return console.log("주식: 코스닥 정보 불러오기 실패");
+});
+setInterval(() => {
+  setkospi().catch((err) => {
+    return console.log("주식: 코스피 정보 불러오던중 오류발생");
+  }).then((val) => {
+    if (val) return console.log("주식: 코스피 정보 불러오기 성공");
+    return console.log("주식: 코스피 정보 불러오기 실패");
+  });
+  setkosdaq().catch((err) => {
+    return console.log("주식: 코스닥 정보 불러오던중 오류발생");
+  }).then((val) => {
+    if (val) return console.log("주식: 코스닥 정보 불러오기 성공");
+    return console.log("주식: 코스닥 정보 불러오기 실패");
+  });
+}, 1000*60*60*2);

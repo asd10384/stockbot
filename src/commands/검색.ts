@@ -95,7 +95,7 @@ export default class StockCommand implements Command {
             url: `https://finance.daum.net/quotes/A${stock.code}`,
             footer: { text: stockmarket }
           });
-          if (stock.files.length > 0) embed.setImage(`attachment://${stock.code}.png`);
+          if (stock.files.length > 0) embed.setImage(`attachment://A${stock.code}.png`);
           else embed.setImage(stock.image);
           embed.addFields([
             {
