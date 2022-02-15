@@ -40,38 +40,17 @@ export default class StockCommand implements Command {
 
   /** 실행되는 부분 */
   async slashrun(interaction: I) {
-    return await interaction.editReply(await this.search(interaction.options.getString("주식이름", true)));
+    return await interaction.editReply(await this.search(interaction, interaction.options.getString("주식이름", true)));
   }
   async msgrun(message: M, args: string[]) {
-    return message.channel.send(await this.search(args.join(" ")));
+    return message.channel.send(await this.search(message, args.join(" ")));
   }
 
   help(): MessageEmbed {
     return client.help(this.metadata.name, this.metadata, this.msgmetadata)!;
   }
 
-  async searchname(name: string | undefined): Promise<MessageEmbed> {
-    if (!name || name.length === 0) return client.mkembed({
-      title: `**주식이름을 입력해주세요.**`,
-      footer: { text: "도움말: !주식 help" },
-      color: "DARK_RED"
-    });
-    var namelist: string[] = [];
-    namelist = namelist.concat(kospi.name.filter((stname) => stname.replace(/ +/g,"").includes(name.replace(/ +/g,""))));
-    namelist = namelist.concat(kosdaq.name.filter((stname) => stname.replace(/ +/g,"").includes(name.replace(/ +/g,""))));
-    if (namelist.length === 0) return client.mkembed({
-      title: `\` 검색: ${name} \``,
-      description: `없음`,
-      color: "DARK_RED"
-    });
-    return client.mkembed({
-      title: `\` 검색: ${name} \``,
-      description: namelist.join("\n"),
-      footer: { text: `예시: !주식 ${namelist[0]}` }
-    });
-  }
-
-  async search(name: string | undefined): Promise<{ embeds: MessageEmbed[], files: MessageAttachment[] }> {
+  async search(message: M | I, name: string | undefined): Promise<{ embeds: MessageEmbed[], files: MessageAttachment[] }> {
     if (!name || name.length === 0) return { embeds: [ client.mkembed({
       title: `**주식이름을 입력해주세요.**`,
       footer: { text: "도움말: !주식 help" },
@@ -88,7 +67,7 @@ export default class StockCommand implements Command {
       if (stockmarket === "코스피") stocks = kospi.stocks.filter((st) => st.stockName === stocknames[0]);
       if (stockmarket === "코스닥") stocks = kosdaq.stocks.filter((st) => st.stockName === stocknames[0]);
       if (stocks?.length > 0) {
-        const stock = await getstock(stocks[0].reutersCode, true);
+        const stock = await getstock(stocks[0].reutersCode, true, message);
         if (stock) {
           const embed = client.mkembed({
             title: `\` ${stock.name} \``,

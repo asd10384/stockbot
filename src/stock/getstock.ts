@@ -1,9 +1,11 @@
+import { client } from "../index";
 import { config } from "dotenv";
 import axios from "axios";
 import { MessageAttachment } from "discord.js";
 import { readdir, unlink } from "fs";
 import nhti from "node-html-to-image";
 import getgetstock2 from "./getgetstock2";
+import { M, I } from "../aliases/discord.js";
 config();
 
 readdir(process.env.IMAGE_URL!, (err, files) => {
@@ -96,7 +98,7 @@ async function getstocks(name: "KOSPI" | "KOSDAQ"): Promise<{ err: undefined, st
   return { err: undefined, stocks: stocklist };
 }
 
-export async function getstock(Code: string, checkimg: boolean): Promise<{
+export async function getstock(Code: string, checkimg: boolean, message?: M | I): Promise<{
   code: string, //코드
   name: string, //이름
   price: string, //시가
@@ -123,6 +125,9 @@ export async function getstock(Code: string, checkimg: boolean): Promise<{
   });
   if (!getstock3 || !getstock3.data) return undefined;
   var img: any = undefined;
+  var msg: M | undefined = await message?.channel?.send({ embeds: [ client.mkembed({
+    description: `${getstock.data.stockName}주식 정보를 불러오는중...`
+  }) ] });
   if (checkimg) {
     img = await nhti({
       output: `${process.env.IMAGE_URL!}/A${Code}.png`,
@@ -145,13 +150,14 @@ export async function getstock(Code: string, checkimg: boolean): Promise<{
     </style>
   </body></html>`,
       content: {
-        url1: getstock2.data.chartImageUrl.day,
+        url1: `https://ssl.pstatic.net/imgfinance/chart/item/area/day/${Code}.png`,
         url2: `https://ssl.pstatic.net/imgfinance/chart/item/candle/day/${Code}.png`
       }
     }).catch((err) => {
       return undefined;
     });
   }
+  msg?.delete().catch((err) => {});
   if (img) {
     const file = new MessageAttachment(`${process.env.IMAGE_URL!}/A${Code}.png`);
     return {
