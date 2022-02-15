@@ -4,7 +4,7 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { MessageAttachment, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock";
+import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
 
 /**
  * DB
@@ -20,8 +20,8 @@ export default class StockCommand implements Command {
   /** 해당 명령어 설명 */
   name = "검색";
   visible = true;
-  description = "입력한 값이 들어간 주식들을 알려줍니다.";
-  information = "입력한 값이 들어간 주식들을 알려줍니다.";
+  description = "주식의 정보를 알려줍니다.";
+  information = "주식의 정보를 알려줍니다.";
   aliases = [  ];
   metadata = <D>{
     name: this.name,

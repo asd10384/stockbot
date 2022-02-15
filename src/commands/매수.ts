@@ -4,7 +4,8 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { GuildMember, MessageActionRow, MessageButton, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock";
+import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
+import { setcooldown } from "../stock/cooldown";
 
 /**
  * DB
@@ -112,6 +113,7 @@ export default class StockCommand implements Command {
         color: "DARK_RED"
       });
     }).then((val) => {
+      setcooldown(`${message.member!.user.id}-${stock.code}`);
       return client.mkembed({
         title: `\` 매수완료 \``,
         description: `주식이름: ${stock.name}\n개당가격: ${stockprice.toLocaleString("ko-KR")}원\n매수수량: ${count}개\n총매수가격: ${(parseInt(count)*stockprice).toLocaleString("ko-KR")}원`,

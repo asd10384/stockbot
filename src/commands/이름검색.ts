@@ -4,7 +4,7 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getnames } from "../stock/getstock";
+import { getnames } from "../stock/getstock_kr";
 
 /**
  * DB

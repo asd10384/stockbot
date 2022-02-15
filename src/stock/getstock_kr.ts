@@ -1,12 +1,11 @@
+import "dotenv/config";
 import { client } from "../index";
-import { config } from "dotenv";
 import axios from "axios";
 import { MessageAttachment } from "discord.js";
 import { readdir, unlink } from "fs";
 import nhti from "node-html-to-image";
-import getgetstock2 from "./getgetstock2";
-import { M, I } from "../aliases/discord.js";
-config();
+import getgetstock2 from "./getgetstock_kr";
+import { M, I } from "../aliases/discord.js.js";
 
 readdir(process.env.IMAGE_URL!, (err, files) => {
   if (err) console.error(err);

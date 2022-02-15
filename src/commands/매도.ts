@@ -4,7 +4,8 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { GuildMember, MessageActionRow, MessageButton, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock";
+import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
+import { cooldown, cooldowntime } from "../stock/cooldown";
 
 /**
  * DB
@@ -92,8 +93,15 @@ export default class StockCommand implements Command {
       description: "다시 시도해주세요.",
       color: "DARK_RED"
     });
-    var dbstocks = udb.stocks;
-    const stock = dbstocks.filter((st) => st.code === stockdata.code);
+    if (cooldown.get(`${message.member!.user.id}-${stockdata.code}`) && (cooldown.get(`${message.member!.user.id}-${stockdata.code}`)! > Date.now())) {
+      const waittime = Math.ceil((cooldown.get(`${message.member!.user.id}-${stockdata.code}`)! - Date.now())/1000);
+      return client.mkembed({
+        title: `\` 매수/매도는 ${cooldowntime}분 마다 가능합니다. \``,
+        description: `**${Math.floor(waittime/60) < 10 ? "0"+Math.floor(waittime/60) : Math.floor(waittime/60)}분 ${waittime%60 < 10 ? "0"+waittime%60 : waittime%60}초** 남았습니다.`,
+        color: "DARK_RED"
+      });
+    }
+    const stock = udb.stocks.filter((st) => st.code === stockdata.code);
     if (stock.length === 0) return client.mkembed({
       title: `\` ${name} 주식을 보유하고있지 않습니다. \``,
       color: "DARK_RED"
@@ -104,6 +112,8 @@ export default class StockCommand implements Command {
       footer: { text: "도움말: !주식 help" },
       color: "DARK_RED"
     });
+    let dbstocks = udb.stocks;
+    udb.stocks = [];
     const stockprice = parseInt(stockdata.price.replace(/\,/g,"").trim());
     udb.money = udb.money + (parseInt(count)*stockprice);
     for (let i=0; i<dbstocks.length; i++) {
@@ -113,8 +123,7 @@ export default class StockCommand implements Command {
         break;
       }
     }
-    udb.stocks = [];
-    udb.stocks = udb.stocks.concat(dbstocks);
+    udb.stocks = dbstocks;
     return await udb.save().catch((err) => {
       return client.mkembed({
         title: `\` 데이터베이스 오류발생 \``,
