@@ -60,7 +60,10 @@ export default class StockCommand implements Command {
           // checkname = kosdaq.name.filter((stname) => stname.replace(/ +/g,"").includes(name.replace(/ +/g,"")));
         }
         const stockdata = await getstock(stock.code, false);
-        if (!stockdata) continue;
+        if (!stockdata) {
+          text += `\n【${stockmarket}】[${stock.name}] 불러오기중 오류발생`;
+          continue;
+        }
         text += `\n【${stockmarket}】[${stock.name}] (${stockdata.price}) <${stock.count}주>〔${
           (parseInt(stockdata.price.replace(/\,/g,""))-stock.price)*stock.count
         }원〕｛${stock.price*stock.count}원｝「${

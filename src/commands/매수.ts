@@ -100,7 +100,7 @@ export default class StockCommand implements Command {
       color: "DARK_RED"
     });
     udb.money = udb.money - (parseInt(count)*stockprice);
-    const getcheck = udb.stocks.filter((val) => val.name === stock.name && val.price && stockprice);
+    const getcheck = udb.stocks.filter((val) => ((val.name === stock.name) && (val.price === stockprice)));
     if (getcheck.length > 0) {
       udb.stocks = udb.stocks.map((st) => (st.name === getcheck[0].name && st.price === stockprice) ? { code: st.code, name: st.name, price: st.price, count: st.count+parseInt(count) } : st);
     } else {

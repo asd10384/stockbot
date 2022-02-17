@@ -108,7 +108,7 @@ export async function getstock(Code: string, checkimg: boolean, message?: M | I)
   image: string, //이미지
   files: MessageAttachment[]
 } | undefined> {
-  const getstock: { [key: string]: any, data?: any } = await axios.get(`https://m.stock.naver.com/api/stock/${Code}/integration`).catch((err) => {
+  const getstock: { [key: string]: any, data?: any } = await axios.get(`https://m.stock.naver.com/api/stock/${Code}/integration`, { timeout: 5000 }).catch((err) => {
     return { data: undefined };
   });
   if (!getstock || !getstock.data) return undefined;
@@ -119,7 +119,7 @@ export async function getstock(Code: string, checkimg: boolean, message?: M | I)
   const getstock3: {
     [key: string]: any,
     data?: any
-  } = await axios.get(`https://m.stock.naver.com/api/stock/${Code}/basic`).catch((err) => {
+  } = await axios.get(`https://m.stock.naver.com/api/stock/${Code}/basic`, { timeout: 5000 }).catch((err) => {
     return { data: undefined };
   });
   if (!getstock3 || !getstock3.data) return undefined;
@@ -193,7 +193,8 @@ export async function getnames(name: string): Promise<any[]> {
     headers: {
       "referer": `https://finance.daum.net/domestic/search?q=${encodeURI(name)}`,
       "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36"
-    }
+    },
+    timeout: 5000
   }).catch((err) => {
     return undefined;
   });
