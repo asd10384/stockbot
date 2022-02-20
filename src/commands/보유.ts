@@ -67,7 +67,7 @@ export default class StockCommand implements Command {
         text += `\n【${stockmarket}】[${stock.name}] (${stockdata.price}) <${stock.count}주>〔${
           (parseInt(stockdata.price.replace(/\,/g,""))-stock.price)*stock.count
         }원〕｛${stock.price*stock.count}원｝「${
-          (((parseInt(stockdata.price.replace(/\,/g,""))-stock.price)*stock.count) / stock.price * 100).toFixed(2)
+          (((stock.price-stock.price)*stock.count)/stock.price*100).toFixed(2)
         }%」`;
         // embed.addField(`이름: **${stock.name}**`, `수량: **${stock.count}**\n구매가: **${stock.price.toLocaleString("ko-KR")}원**\n현재가: **${stockdata.price}원**`);
       }
