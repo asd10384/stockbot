@@ -11,31 +11,39 @@
   "author": "tkrmagid",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.25.0",
+    "axios": "^0.26.1",
+    "chromium": "^3.0.3",
     "discord.js": "^13.6.0",
     "dotenv": "^16.0.0",
     "fs": "^0.0.1-security",
-    "mongoose": "^6.2.1",
-    "node-html-to-image": "^3.2.3",
+    "fs-extra": "^10.0.1",
+    "i": "^0.3.7",
+    "mongoose": "^6.2.9",
+    "node-html-to-image": "^3.2.4",
+    "npm": "^8.6.0",
     "path": "^0.12.7",
-    "sodium": "^3.0.2"
+    "puppeteer": "^13.5.2",
+    "puppeteer-core": "^13.5.2",
+    "sodium": "^3.0.2",
+    "ws": "^8.5.0"
   },
   "engines": {
     "node": "^16.13.2"
   },
   "devDependencies": {
-    "@types/node": "^17.0.17",
-    "@typescript-eslint/eslint-plugin": "^5.11.0",
-    "@typescript-eslint/parser": "^5.11.0",
-    "eslint": "^8.8.0",
+    "@types/fs-extra": "^9.0.13",
+    "@types/node": "^17.0.23",
+    "@typescript-eslint/eslint-plugin": "^5.17.0",
+    "@typescript-eslint/parser": "^5.17.0",
+    "eslint": "^8.12.0",
     "eslint-config-standard": "^16.0.3",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "nodemon": "^2.0.15",
     "ts-cleaner": "^1.0.5",
-    "ts-node": "^10.5.0",
+    "ts-node": "^10.7.0",
     "ts-node-dev": "^1.1.8",
-    "typescript": "^4.5.5"
+    "typescript": "^4.6.3"
   }
 }

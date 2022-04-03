@@ -4,7 +4,7 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { GuildMember, MessageActionRow, MessageButton, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
+import { getstocks, stocks } from "../stock/getstock";
 
 /**
  * DB
@@ -16,13 +16,13 @@ import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
  */
 
 /** 예시 명령어 */
-export default class StockCommand implements Command {
+export default class ExampleCommand implements Command {
   /** 해당 명령어 설명 */
   name = "보유";
   visible = true;
-  description = "현재보유금액과 매수한 주식 확인";
-  information = "현재보유금액과 매수한 주식 확인";
-  aliases = [  ];
+  description = "보유 주식 확인";
+  information = "보유 주식 확인";
+  aliases = [];
   metadata = <D>{
     name: this.name,
     description: this.description
@@ -31,50 +31,58 @@ export default class StockCommand implements Command {
 
   /** 실행되는 부분 */
   async slashrun(interaction: I) {
-    return await interaction.editReply({ embeds: [ await this.queue(interaction) ] });
+    return await interaction.editReply({ embeds: [ await this.have(interaction.member as GuildMember) ] });
   }
   async msgrun(message: M, args: string[]) {
-    return message.channel.send({ embeds: [ await this.queue(message) ] });
+    return message.channel.send({ embeds: [ await this.have(message.member as GuildMember) ] });
   }
 
   help(): MessageEmbed {
     return client.help(this.metadata.name, this.metadata, this.msgmetadata)!;
   }
 
-  async queue(message: M | I): Promise<MessageEmbed> {
-    const udb = await MDB.get.user(message.member as GuildMember);
+  async have(member: GuildMember): Promise<MessageEmbed> {
+    const udb = await MDB.get.user(member);
     if (!udb) return client.mkembed({
-      title: `유저정보를 찾을수 없습니다.`,
-      description: "다시 시도해주세요.",
+      title: `\` 데이터베이스 오류 \``,
+      description: `다시시도해주세요.`,
       color: "DARK_RED"
     });
-    const nickname = (message.member as GuildMember)?.nickname ? (message.member as GuildMember)?.nickname : (message.member as GuildMember)?.user.username;
-    var text = "";
-    if (udb.stocks.length > 0) {
-      for (let i=0; i<udb.stocks.length; i++) {
-        let stockmarket: "코스피" | "코스닥" = "코스피";
-        let stock = udb.stocks[i];
-        let checkname = kospi.name.filter((stname) => stname.replace(/ +/g,"").includes(stock.name.replace(/ +/g,"")));
-        if (checkname.length === 0) {
-          stockmarket = "코스닥";
-          // checkname = kosdaq.name.filter((stname) => stname.replace(/ +/g,"").includes(name.replace(/ +/g,"")));
+    let dbstocks: stocks[] = JSON.parse(udb.stocks);
+    let text = `보유금액 : ${udb.money}\n\n【시장】[종목] (현재가) <보유수량>〔손익〕｛투자금액｝「예상수익률」\n\n`;
+    if (dbstocks.length > 0) {
+      const getstocksdata = await getstocks(dbstocks.map((stock) => {
+        return { market: stock.market, symbols: stock.code }
+      }));
+      text += dbstocks.map((stock, i) => {
+        let allcount = 0;
+        let allprice = 0;
+        for (let data of stock.data) {
+          allprice += data.price*data.count;
+          allcount += data.count;
         }
-        const stockdata = await getstock(stock.code, false);
-        if (!stockdata) {
-          text += `\n【${stockmarket}】[${stock.name}] 불러오기중 오류발생`;
-          continue;
-        }
-        text += `\n【${stockmarket}】[${stock.name}] (${stockdata.price}) <${stock.count}주>〔${
-          (parseInt(stockdata.price.replace(/\,/g,""))-stock.price)*stock.count
-        }원〕｛${stock.price*stock.count}원｝「${
-          (((stock.price-stock.price)*stock.count)/stock.price*100).toFixed(2)
-        }%」`;
-        // embed.addField(`이름: **${stock.name}**`, `수량: **${stock.count}**\n구매가: **${stock.price.toLocaleString("ko-KR")}원**\n현재가: **${stockdata.price}원**`);
-      }
+        return `【${
+          stock.market
+        }】[${
+          stock.name
+        }] (${
+          getstocksdata[i].price ? getstocksdata[i].price : "오류"
+        }) <${
+          allcount
+        }>〔${
+          getstocksdata[i].price ? (getstocksdata[i].price!*allcount)-allprice : "오류"
+        }〕｛${
+          allprice
+        }｝「${
+          getstocksdata[i].price ? (((getstocksdata[i].price!*allcount)-allprice)/allprice*100).toFixed(2) : "오류"
+        }」`;
+      }).join("\n");
+    } else {
+      text += `없음`;
     }
     return client.mkembed({
-      title: `**${nickname}**님 보유자산`,
-      description: `보유금액 : ${udb.money.toLocaleString("ko-KR")}원\n\n【시장】[종목] (현재가) <보유수량>〔손익〕｛투자금액｝「예상수익률」\n${text.length === 0 ? "\n없음" : text}`
+      title: `\` ${member.nickname ? member.nickname : member.user.username}님 보유자산 \``,
+      description: text
     });
   }
 }

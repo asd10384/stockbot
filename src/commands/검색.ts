@@ -2,9 +2,13 @@ import { client } from "../index";
 import { check_permission as ckper, embed_permission as emper } from "../function/permission";
 import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
-import { MessageAttachment, MessageEmbed } from "discord.js";
+import { GuildMember, MessageAttachment, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
+import { getstocknamelist, stocknametypes } from "../stock/getstockname";
+import { getstock, market } from "../stock/getstock";
+import { unlink } from "fs";
+import getimg, { img_path, random } from "../stock/getimg";
+import searchstock from "../stock/searchstock";
 
 /**
  * DB
@@ -56,60 +60,73 @@ export default class StockCommand implements Command {
       footer: { text: "도움말: !주식 help" },
       color: "DARK_RED"
     }) ], files: [] };
-    var stockmarket: "코스피" | "코스닥" = "코스피";
-    var stocknames = kospi.name.filter((stname) => stname.replace(/ +/g,"") === name.replace(/ +/g,""));
-    if (stocknames?.length === 0) {
-      stockmarket = "코스닥";
-      stocknames = kosdaq.name.filter((stname) => stname.replace(/ +/g,"") === name.replace(/ +/g,""));
+    const searchstockdata = await searchstock(name);
+    if (!searchstockdata) return { embeds: [ client.mkembed({
+      title: `\` 주식을 찾을수 없음 \``,
+      description: `**${name}** 이름의 주식을 찾을수 없습니다.`,
+      color: "DARK_RED"
+    })], files: [] };
+    return await this.get(message, searchstockdata[1], searchstockdata[0]);
+  }
+
+  async get(message: M | I, getlist: stocknametypes, market: market): Promise<{embeds: MessageEmbed[], files: MessageAttachment[]}> {
+    const nickname = message.member ? (message.member as GuildMember).nickname ? (message.member as GuildMember).nickname : message.member.user.username : undefined;
+    const msg = await message.channel?.send({ embeds: [ client.mkembed({
+      title: `\` ${getlist.description} \` 주식 불러오는중...`,
+      description: `약 10~20초 소요됨`,
+      footer: { text: `${nickname} 님이 요청` }
+    }) ], files: [] });
+    const stock = await getstock(market, getlist.symbol);
+    if (!stock.price) {
+      msg?.delete().catch((err) => {});
+      return { embeds: [
+        client.mkembed({
+          title: `\` ${getlist.description} \``,
+          description: `불러오기 오류\n다시시도해주세요.`,
+          footer: { text: market },
+          color: "DARK_RED"
+        })
+      ], files: [] };
     }
-    if (stocknames?.length > 0) {
-      var stocks: stockstype[] = [];
-      if (stockmarket === "코스피") stocks = kospi.stocks.filter((st) => st.stockName === stocknames[0]);
-      if (stockmarket === "코스닥") stocks = kosdaq.stocks.filter((st) => st.stockName === stocknames[0]);
-      if (stocks?.length > 0) {
-        const stock = await getstock(stocks[0].reutersCode, true, message);
-        if (stock) {
-          const embed = client.mkembed({
-            title: `\` ${stock.name} \``,
-            url: `https://finance.daum.net/quotes/A${stock.code}`,
-            footer: { text: stockmarket }
+    const img = await getimg(getlist.exchange, getlist.symbol);
+    const embed = client.mkembed({
+      title: `\` ${getlist.description} \``,
+      image: img[0],
+      footer: { text: market }
+    });
+    embed.addFields([
+      {
+        name: `**현재가**`,
+        value: stock.price.toString(),
+        inline: true
+      },
+      {
+        name: `**전일비**`,
+        value: stock.ch!.toString(),
+        inline: true
+      },
+      {
+        name: `**등락률**`,
+        value: stock.chp!.toString()+"%",
+        inline: true
+      },
+      {
+        name: `**거래량**`,
+        value: stock.volume!.toString(),
+        inline: true
+      }
+    ]);
+    msg?.delete().catch((err) => {});
+    setTimeout(() => {
+      if (img[2]) {
+        if (random.has(img[2])) {
+          unlink(`${img_path}/${img[2]}`, (err) => {
+            if (err) return;
+            random.delete(img[2]!);
           });
-          if (stock.files.length > 0) embed.setImage(`attachment://A${stock.code}.png`);
-          else embed.setImage(stock.image);
-          embed.addFields([
-            {
-              name: `**현재가**`,
-              value: stock.price,
-              inline: true
-            },
-            {
-              name: `**전일비**`,
-              value: stock.compareToPreviousClosePrice,
-              inline: true
-            },
-            {
-              name: `**등락률**`,
-              value: stock.fluctuationsRatio,
-              inline: true
-            },
-            {
-              name: `**시가총액**`,
-              value: stock.marketValue,
-              inline: true
-            },
-            {
-              name: `**거래량**`,
-              value: stock.accumulatedTradingVolume.toLocaleString("ko-KR"),
-              inline: true
-            }
-          ]);
-          return { embeds: [ embed ], files: stock.files };
         }
       }
-    }
-    return { embeds: [ client.mkembed({
-      title: `\` 주식을 찾을수 없음 \``,
-      description: `**${name}** 이름의 주식을 찾을수 없습니다.`
-    })], files: [] };
+    }, 1000*10);
+    return { embeds: [ embed ], files: img[1] };
   }
 }

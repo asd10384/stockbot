@@ -1,6 +1,5 @@
-import { config } from "dotenv";
+import "dotenv/config";
 import { Document, model, Schema } from "mongoose";
-config();
 
 export interface user_type extends Document {
   id: string;
@@ -11,12 +10,7 @@ export interface user_type extends Document {
     check: boolean;
     time: string;
   };
-  stocks: {
-    code: string;
-    name: string;
-    price: number;
-    count: number;
-  }[]
+  stocks: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -28,7 +22,7 @@ const UserSchema: Schema = new Schema({
     time: { type: String, default: "" }
   },
   money: { type: Number, default: 0 },
-  stocks: { type: Array, default: [] }
+  stocks: { type: String, default: "[]" }
 });
 
 export const user_model = model<user_type>(`User`, UserSchema);

@@ -4,7 +4,6 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { GuildMember, MessageActionRow, MessageButton, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
 
 /**
  * DB

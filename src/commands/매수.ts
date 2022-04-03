@@ -4,8 +4,9 @@ import { Command } from "../interfaces/Command";
 import { I, D, M, B, S } from "../aliases/discord.js.js";
 import { GuildMember, MessageActionRow, MessageButton, MessageEmbed } from "discord.js";
 import MDB from "../database/Mongodb";
-import { getstock, kosdaq, kospi, stockstype } from "../stock/getstock_kr";
-import { setcooldown } from "../stock/cooldown";
+import searchstock from "../stock/searchstock";
+import { getstock } from "../stock/getstock";
+import { stocks } from "../stock/getstock";
 
 /**
  * DB
@@ -17,108 +18,129 @@ import { setcooldown } from "../stock/cooldown";
  */
 
 /** 예시 명령어 */
-export default class StockCommand implements Command {
+export default class ExampleCommand implements Command {
   /** 해당 명령어 설명 */
   name = "매수";
   visible = true;
-  description = "입력한 값이 들어간 주식을 수량만큼 매수합니다.";
-  information = "입력한 값이 들어간 주식을 수량만큼 매수합니다.";
-  aliases = [  ];
+  description = "주식 매수";
+  information = "주식 매수";
+  aliases = [ "구매" ];
   metadata = <D>{
     name: this.name,
-    description: this.description,
-    options: [{
-      type: "STRING",
-      name: "주식",
-      description: "[주식이름]/[수량]",
-      required: true
-    }]
+    description: this.description
   };
   msgmetadata?: { name: string; des: string; }[] = [{
     name: "매수 [주식이름] [수량]",
-    des: "입력한 값이 들어간 주식을 수량만큼 매수합니다."
+    des: "입력한 주식을 [수량] 만큼 매수"
   }];
 
   /** 실행되는 부분 */
   async slashrun(interaction: I) {
-    const args = interaction.options.getString("주식", true).split("/");
-    return await interaction.editReply({ embeds: [ await this.purchase(interaction, args[0].trim(), args[1].trim()) ] });
+    return await interaction.editReply({ embeds: [
+      client.mkembed({
+        title: `\` \/ 명령어 사용불가 \``,
+        description: `매수 명령어는 **${client.prefix}매수**로 사용가능합니다.`,
+        footer: { text: `도움말: ${client.prefix}주식` },
+        color: client.embedcolor
+      })
+    ] });
   }
   async msgrun(message: M, args: string[]) {
-    return message.channel.send({ embeds: [ await this.purchase(message, args[0], args[1]) ] });
+    if (args.length >= 2) return message.channel.send({ embeds: [ await this.buy(message.member as GuildMember, args.slice(0,-1).join(" ").trim(), parseInt(args[args.length-1])) ] });
+    return message.channel.send({ embeds: [ this.help() ] });
   }
 
   help(): MessageEmbed {
     return client.help(this.metadata.name, this.metadata, this.msgmetadata)!;
   }
 
-  async purchase(message: M | I, name: string | undefined, count: string | undefined): Promise<MessageEmbed> {
-    if (!name || name.length === 0) return client.mkembed({
-      title: `**주식이름을 입력해주세요.**`,
-      footer: { text: "도움말: !주식 help" },
+  async buy(member: GuildMember, name: string, count: number): Promise<MessageEmbed> {
+    if (name.replace(/ +/g,"").length === 0) return this.help();
+    if (count === NaN) return client.mkembed({
+      title: `\` 숫자를 입력해주세요. \``,
+      description: `도움말: ${client.prefix}매수 도움말`,
       color: "DARK_RED"
     });
-    if (!count || count.length === 0) return client.mkembed({
-      title: `**주식을 매수할 수량을 입력해주세요.**`,
-      footer: { text: "도움말: !주식 help" },
+    const searchstockdata = await searchstock(name);
+    if (!searchstockdata) return client.mkembed({
+      title: `\` 주식을 찾을수 없음 \``,
+      description: `**${name}** 이름의 주식을 찾을수 없습니다.`,
       color: "DARK_RED"
     });
-    if (!parseInt(count) || parseInt(count) <= 0) return client.mkembed({
-      title: `**수량은 1이상 입력해주세요.**`,
-      footer: { text: "도움말: !주식 help" },
+    const getstockdata = await getstock(searchstockdata[0], searchstockdata[1].symbol);
+    if (!getstockdata.price) return client.mkembed({
+      title: `\` 주식정보 불러오는중 오류발생 \``,
+      description: `다시시도해주세요.`,
       color: "DARK_RED"
     });
-    var stockmarket: "코스피" | "코스닥" = "코스피";
-    var getname: string[] = [];
-    getname = kospi.name.filter((stname) => stname.replace(/ +/g,"") === name.replace(/ +/g,""));
-    if (getname.length === 0) {
-      stockmarket = "코스닥";
-      getname = kosdaq.name.filter((stname) => stname.replace(/ +/g,"") === name.replace(/ +/g,""));
-    }
-    if (getname.length === 0) return client.mkembed({
-      title: `\` ${name} 주식을 찾을수 없습니다. \``,
-      color: "DARK_RED"
-    });
-    var stocks: stockstype[] = [];
-    if (stockmarket === "코스피") stocks = kospi.stocks.filter((st) => st.stockName === getname[0]);
-    if (stockmarket === "코스닥") stocks = kosdaq.stocks.filter((st) => st.stockName === getname[0])
-    const stock = await getstock(stocks[0].reutersCode, false);
-    if (!stock) return client.mkembed({
-      title: `\` ${name} 주식을 찾을수 없습니다. \``,
-      color: "DARK_RED"
-    });
-    const udb = await MDB.get.user(message.member as GuildMember);
+    const udb = await MDB.get.user(member);
     if (!udb) return client.mkembed({
-      title: `\` 데이터베이스 오류발생 \``,
-      description: "다시 시도해주세요.",
+      title: `\` 데이터베이스 오류 \``,
+      description: `다시시도해주세요.`,
       color: "DARK_RED"
     });
-    const stockprice = parseInt(stock.price.replace(/\,/g,"").trim());
-    if (udb.money < parseInt(count)*stockprice) return client.mkembed({
-      title: `\` 보유금액 부족 \``,
-      description: `현재보유금액: ${udb.money}\n총매수액: ${(parseInt(count)*stockprice-udb.money).toLocaleString("ko-KR")}원 만큼 부족`,
+    let dbstocks: stocks[] = JSON.parse(udb.stocks);
+    if (udb.money < getstockdata.price*count) return client.mkembed({
+      title: `\` 자금부족 \``,
+      description: `필요자금 : ${getstockdata.price*count}\n보유자금 : ${udb.money}`,
       color: "DARK_RED"
     });
-    udb.money = udb.money - (parseInt(count)*stockprice);
-    const getcheck = udb.stocks.filter((val) => ((val.name === stock.name) && (val.price === stockprice)));
-    if (getcheck.length > 0) {
-      udb.stocks = udb.stocks.map((st) => (st.name === getcheck[0].name && st.price === stockprice) ? { code: st.code, name: st.name, price: st.price, count: st.count+parseInt(count) } : st);
+    if (dbstocks.find((stock) => stock.code === getstockdata.symbols)) {
+      for (let i in dbstocks) {
+        let stock = dbstocks[i];
+        if (stock.code === getstockdata.symbols) {
+          let datacheck = false;
+          for (let j in stock.data) {
+            let data = stock.data[j];
+            if (data.price === getstockdata.price) {
+              dbstocks[i].data[j] = {
+                price: data.price,
+                count: data.count+count
+              };
+              datacheck = true;
+              break;
+            }
+          }
+          if (!datacheck) {
+            dbstocks[i].data[dbstocks[i].data.length] = {
+              price: getstockdata.price,
+              count: count
+            };
+            break;
+          }
+          break;
+        }
+      }
     } else {
-      udb.stocks.push({ code: stock.code, name: stock.name, price: stockprice, count: parseInt(count) });
+      dbstocks[dbstocks.length] = {
+        market: getstockdata.market,
+        code: getstockdata.symbols,
+        name: searchstockdata[1].description,
+        data: [{
+          price: getstockdata.price!,
+          count: count
+        }]
+      };
     }
+    udb.stocks = JSON.stringify(dbstocks);
+    udb.money = udb.money - (getstockdata.price*count);
     return await udb.save().catch((err) => {
       return client.mkembed({
-        title: `\` 데이터베이스 오류발생 \``,
-        description: "다시 시도해주세요.",
+        title: `\` 데이터베이스 저장 오류 \``,
+        description: `다시시도해주세요.`,
         color: "DARK_RED"
       });
-    }).then((val) => {
-      setcooldown(`${message.member!.user.id}-${stock.code}`);
+    }).then(() => {
       return client.mkembed({
-        title: `\` 매수완료 \``,
-        description: `주식이름: ${stock.name}\n개당가격: ${stockprice.toLocaleString("ko-KR")}원\n매수수량: ${count}개\n총매수가격: ${(parseInt(count)*stockprice).toLocaleString("ko-KR")}원`,
-        footer: { text: `!주식 보유` }
+        title: `\` ${searchstockdata[1].description} 주식 매수성공 \``,
+        description: `
+          개당가격 : ${getstockdata.price!}
+          수량 : ${count}
+          종금액 : ${getstockdata.price!*count}
+          보유금액 : ${udb.money}
+        `,
+        footer: { text: `${client.prefix} 보유` }
       });
-    });
+    })
   }
 }
