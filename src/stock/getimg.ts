@@ -20,11 +20,11 @@ export default async function getimg(market: market, symbols: string): Promise<[
       height: 540
     });
     await page.goto(`https://www.tradingview.com/chart?symbol=${market}%3A${symbols}`);
-    await page.waitForTimeout(4000);
-    await page.click(`div#header-toolbar-fullscreen`);
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(5000);
+    await page.click(`div[data-name="header-toolbar-fullscreen"]`);
+    await page.waitForTimeout(1250);
     await page.click(`div[data-role="toast-container"] button`).catch((err) => {});
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1250);
     const rs = randomString_notsame();
     await page.screenshot({ path: `${img_path}/${rs}.jpg`, type: "jpeg" });
     await browser.close();

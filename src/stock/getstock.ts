@@ -1,5 +1,7 @@
 import "dotenv/config";
+import { client } from "../index";
 import WebSocket from "ws";
+import getexrate from "./getexrate";
 import randomString from "./randomString";
 
 export interface stocks {
@@ -18,18 +20,20 @@ export async function getstock(market: market, symbols: string): Promise<{
   market: market;
   symbols: string;
   price: number | undefined;
+  krwprice: number | undefined;
   ch: number | undefined;
   chp: number | undefined;
   volume: number | undefined;
 }> {
   const ws: WebSocket | undefined = await get_ws(market, symbols).catch((err) => {
-    console.log(err);
+    if (client.debug) console.log(err);
     return undefined;
   });
   if (!ws) return {
     market: market,
     symbols: symbols,
     price: undefined,
+    krwprice: undefined,
     ch: undefined,
     chp: undefined,
     volume: undefined
@@ -40,13 +44,14 @@ export async function getstock(market: market, symbols: string): Promise<{
     chp: number | undefined;
     volume: number | undefined;
   } | undefined = await get(ws).catch((err) => {
-    console.log(err);
+    if (client.debug) console.log(err);
     return undefined;
   });
   if (!data) return {
     market: market,
     symbols: symbols,
     price: undefined,
+    krwprice: undefined,
     ch: undefined,
     chp: undefined,
     volume: undefined
@@ -55,6 +60,7 @@ export async function getstock(market: market, symbols: string): Promise<{
     market: market,
     symbols: symbols,
     price: data.price,
+    krwprice: (await getexrate(market, data.price))[0],
     ch: data.ch,
     chp: data.chp,
     volume: data.volume
@@ -65,6 +71,7 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
   market: market;
   symbols: string;
   price: number | undefined;
+  krwprice: number | undefined;
   ch: number | undefined;
   chp: number | undefined;
 }[]> {
@@ -72,12 +79,13 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
     market: market;
     symbols: string;
     price: number | undefined;
+    krwprice: number | undefined;
     ch: number | undefined;
     chp: number | undefined;
   }[] = [];
   for (let i in list) {
     const ws: WebSocket | undefined = await get_ws(list[i].market, list[i].symbols).catch((err) => {
-      console.log(err);
+      if (client.debug) console.log(err);
       return undefined;
     });
     if (!ws) {
@@ -85,6 +93,7 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
         market: list[i].market,
         symbols: list[i].symbols,
         price: undefined,
+        krwprice: undefined,
         ch: undefined,
         chp: undefined
       });
@@ -95,7 +104,7 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
       ch: number | undefined;
       chp: number | undefined;
     } | undefined = await get(ws).catch((err) => {
-      console.log(err);
+      if (client.debug) console.log(err);
       return undefined;
     });
     if (!data) {
@@ -103,6 +112,7 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
         market: list[i].market,
         symbols: list[i].symbols,
         price: undefined,
+        krwprice: undefined,
         ch: undefined,
         chp: undefined
       });
@@ -112,6 +122,7 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
       market: list[i].market,
       symbols: list[i].symbols,
       price: data.price,
+      krwprice: (await getexrate(list[i].market, data.price))[0],
       ch: data.ch,
       chp: data.chp
     });
@@ -140,7 +151,7 @@ function get_ws(market: market, symbols: string): Promise<WebSocket> {
       res(ws);
     }
     ws.onerror = function (err) {
-      console.error(err);
+      if (client.debug) console.log(err);
       rej(err);
     }
   });

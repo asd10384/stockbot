@@ -48,7 +48,8 @@ export async function getstockname(text: string, type: "stock", exchange: market
   var overcount = 0;
   var text2 = "";
   const list = getlist.map((data) => {
-    data.description = data.description.trim().endsWith("보통주") ? data.description.replace("보통주", "") : data.description;
+    data.description = data.description.trim().endsWith("보통주") ? data.description.replace("보통주", "").trim() : data.description;
+    data.description = data.description.trim().endsWith("Inc.") ? data.description.replace("Inc.", "").trim() : data.description;
     return data;
   });
   for (let i in list) {

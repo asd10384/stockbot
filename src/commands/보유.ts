@@ -49,7 +49,7 @@ export default class ExampleCommand implements Command {
       color: "DARK_RED"
     });
     let dbstocks: stocks[] = JSON.parse(udb.stocks);
-    let text = `보유금액 : ${udb.money}\n\n【시장】[종목] (현재가) <보유수량>〔손익〕｛투자금액｝「예상수익률」\n\n`;
+    let text = `보유금액 : ${udb.money.toLocaleString("ko-kr")}원\n\n【시장】[종목] (현재가) <보유수량>〔손익〕｛투자금액｝「예상수익률」\n\n`;
     if (dbstocks.length > 0) {
       const getstocksdata = await getstocks(dbstocks.map((stock) => {
         return { market: stock.market, symbols: stock.code }
@@ -66,15 +66,15 @@ export default class ExampleCommand implements Command {
         }】[${
           stock.name
         }] (${
-          getstocksdata[i].price ? getstocksdata[i].price : "오류"
+          getstocksdata[i].krwprice ? getstocksdata[i].krwprice!.toLocaleString("ko-kr") : "오류"
         }) <${
           allcount
-        }>〔${
-          getstocksdata[i].price ? (getstocksdata[i].price!*allcount)-allprice : "오류"
+        }주>〔${
+          getstocksdata[i].krwprice ? ((getstocksdata[i].krwprice!*allcount)-allprice).toLocaleString("ko-kr") : "오류"
         }〕｛${
-          allprice
+          allprice.toLocaleString("ko-kr")
         }｝「${
-          getstocksdata[i].price ? (((getstocksdata[i].price!*allcount)-allprice)/allprice*100).toFixed(2) : "오류"
+          getstocksdata[i].krwprice ? (((getstocksdata[i].krwprice!*allcount)-allprice)/allprice*100).toFixed(2)+"%" : "오류"
         }」`;
       }).join("\n");
     } else {

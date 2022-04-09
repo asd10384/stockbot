@@ -77,7 +77,7 @@ export default class StockCommand implements Command {
       footer: { text: `${nickname} 님이 요청` }
     }) ], files: [] });
     const stock = await getstock(market, getlist.symbol);
-    if (!stock.price) {
+    if (!stock.price || !stock.krwprice) {
       msg?.delete().catch((err) => {});
       return { embeds: [
         client.mkembed({
@@ -96,23 +96,23 @@ export default class StockCommand implements Command {
     });
     embed.addFields([
       {
-        name: `**현재가**`,
-        value: stock.price.toString(),
+        name: `**현재가(KRW)**`,
+        value: stock.krwprice.toLocaleString("ko-kr"),
         inline: true
       },
       {
         name: `**전일비**`,
-        value: stock.ch!.toString(),
+        value: stock.ch!.toLocaleString("ko-kr"),
         inline: true
       },
       {
         name: `**등락률**`,
-        value: stock.chp!.toString()+"%",
+        value: stock.chp!.toLocaleString("ko-kr")+"%",
         inline: true
       },
       {
         name: `**거래량**`,
-        value: stock.volume!.toString(),
+        value: stock.volume!.toLocaleString("ko-kr"),
         inline: true
       }
     ]);
