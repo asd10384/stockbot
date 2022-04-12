@@ -82,7 +82,7 @@ export default class StockCommand implements Command {
       return { embeds: [
         client.mkembed({
           title: `\` ${getlist.description} \``,
-          description: `불러오기 오류\n다시시도해주세요.`,
+          description: `${stock.err}`,
           footer: { text: market },
           color: "DARK_RED"
         })
@@ -94,7 +94,14 @@ export default class StockCommand implements Command {
       image: img[0],
       footer: { text: market }
     });
+    let realprice = "원";
+    if (market === "NASDAQ") realprice = "달러";
     embed.addFields([
+      {
+        name: `**원가(${realprice})**`,
+        value: stock.price.toString(),
+        inline: true
+      },
       {
         name: `**현재가(KRW)**`,
         value: stock.krwprice.toLocaleString("ko-kr"),

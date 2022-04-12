@@ -16,16 +16,27 @@ export interface stocks {
 
 export type market = "KRX" | "NASDAQ";
 
-export async function getstock(market: market, symbols: string): Promise<{
+export async function getstock(market: market, symbols: string, selfcode?: number): Promise<{
   market: market;
   symbols: string;
   price: number | undefined;
   krwprice: number | undefined;
+  err: string | undefined;
   ch: number | undefined;
   chp: number | undefined;
   volume: number | undefined;
 }> {
-  const ws: WebSocket | undefined = await get_ws(market, symbols).catch((err) => {
+  if (selfcode && selfcode > 65) return {
+    market: market,
+    symbols: symbols,
+    price: undefined,
+    krwprice: undefined,
+    err: "불러오기 오류\n다시시도해주세요.\n(WS를 찾을수없음)",
+    ch: undefined,
+    chp: undefined,
+    volume: undefined
+  };
+  const ws: WebSocket | undefined = await get_ws(market, symbols, selfcode).catch((err) => {
     if (client.debug) console.log(err);
     return undefined;
   });
@@ -34,11 +45,13 @@ export async function getstock(market: market, symbols: string): Promise<{
     symbols: symbols,
     price: undefined,
     krwprice: undefined,
+    err: "불러오기 오류\n다시시도해주세요.\n(WS를 찾을수없음)",
     ch: undefined,
     chp: undefined,
     volume: undefined
   };
   const data: {
+    err: "protocol_error" | undefined;
     price: number | undefined;
     ch: number | undefined;
     chp: number | undefined;
@@ -52,15 +65,19 @@ export async function getstock(market: market, symbols: string): Promise<{
     symbols: symbols,
     price: undefined,
     krwprice: undefined,
+    err: "불러오기 오류\n다시시도해주세요.\n(주식데이터 가져오기실패)",
     ch: undefined,
     chp: undefined,
     volume: undefined
   };
+  if (data.err === "protocol_error") return await getstock(market, symbols, selfcode ? selfcode++ : 64);
+  const krwprice = await getexrate(market, data.price);
   return {
     market: market,
     symbols: symbols,
     price: data.price,
-    krwprice: (await getexrate(market, data.price))[0],
+    krwprice: krwprice[0],
+    err: krwprice[1],
     ch: data.ch,
     chp: data.chp,
     volume: data.volume
@@ -80,11 +97,25 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
     symbols: string;
     price: number | undefined;
     krwprice: number | undefined;
+    err: string | undefined;
     ch: number | undefined;
     chp: number | undefined;
   }[] = [];
-  for (let i in list) {
-    const ws: WebSocket | undefined = await get_ws(list[i].market, list[i].symbols).catch((err) => {
+  let selfcode: number[] = [];
+  for (let i=0; i<list.length; i++) {
+    if (selfcode[0] === i && selfcode[1] && selfcode[1] > 65) {
+      output.push({
+        market: list[i].market,
+        symbols: list[i].symbols,
+        price: undefined,
+        krwprice: undefined,
+        err: "불러오기 오류\n다시시도해주세요.\n(WS를 찾을수없음)",
+        ch: undefined,
+        chp: undefined
+      });
+      continue;
+    }
+    const ws: WebSocket | undefined = await get_ws(list[i].market, list[i].symbols, (selfcode[0] === i ? selfcode[1] : undefined)).catch((err) => {
       if (client.debug) console.log(err);
       return undefined;
     });
@@ -94,15 +125,18 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
         symbols: list[i].symbols,
         price: undefined,
         krwprice: undefined,
+        err: "불러오기 오류\n다시시도해주세요.\n(WS를 찾을수없음)",
         ch: undefined,
         chp: undefined
       });
       continue;
     }
-    const data: {
+    let data: {
+      err: "protocol_error" | undefined;
       price: number | undefined;
       ch: number | undefined;
       chp: number | undefined;
+      volume: number | undefined;
     } | undefined = await get(ws).catch((err) => {
       if (client.debug) console.log(err);
       return undefined;
@@ -113,16 +147,28 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
         symbols: list[i].symbols,
         price: undefined,
         krwprice: undefined,
+        err: "불러오기 오류\n다시시도해주세요.\n(주식데이터 가져오기실패)",
         ch: undefined,
         chp: undefined
       });
       continue;
     }
+    if (data.err === "protocol_error") {
+      if (selfcode[0] === i) {
+        selfcode[1] = selfcode[1]+1;
+      } else {
+        selfcode = [i, 64];
+      }
+      i--;
+      continue;
+    }
+    const krwprice = await getexrate(list[i].market, data.price);
     output.push({
       market: list[i].market,
       symbols: list[i].symbols,
       price: data.price,
-      krwprice: (await getexrate(list[i].market, data.price))[0],
+      krwprice: krwprice[0],
+      err: krwprice[1],
       ch: data.ch,
       chp: data.chp
     });
@@ -130,7 +176,7 @@ export async function getstocks(list: { market: market; symbols: string; }[]): P
   return output;
 }
 
-function get_ws(market: market, symbols: string): Promise<WebSocket> {
+function get_ws(market: market, symbols: string, selfcode?: number): Promise<WebSocket> {
   return new Promise(function (res, rej) {
     const ws = new WebSocket(`wss://data.tradingview.com/socket.io/websocket?from=symbols%2F${market}-${symbols}`, {
       headers: {
@@ -147,7 +193,7 @@ function get_ws(market: market, symbols: string): Promise<WebSocket> {
       let random = randomString();
       ws.send(`~m~36~m~{"m":"set_data_quality","p":["low"]}`);
       ws.send(`~m~52~m~{"m":"quote_create_session","p":["qs_${random}"]}`);
-      ws.send(`~m~${code}~m~{"m":"quote_add_symbols","p":["qs_${random}","${market}:${symbols}"]}`);
+      ws.send(`~m~${selfcode ? selfcode : code}~m~{"m":"quote_add_symbols","p":["qs_${random}","${market}:${symbols}"]}`);
       res(ws);
     }
     ws.onerror = function (err) {
@@ -157,6 +203,7 @@ function get_ws(market: market, symbols: string): Promise<WebSocket> {
   });
 }
 function get(ws: WebSocket): Promise<{
+  err: "protocol_error" | undefined;
   price: number | undefined;
   ch: number | undefined;
   chp: number | undefined;
@@ -168,12 +215,23 @@ function get(ws: WebSocket): Promise<{
       let list = e.data.toString().replace(/\~m\~.{1,6}\~m\~/g, "@A@A@").replace(/\~/g,"").split("@A@A@");
       for (let i in list) {
         let text = list[i];
-        // if (market === "NASDAQ") continue;
         if (text.length > 0) {
           const json = JSON.parse(text);
-          if (json.p && json.p[1] && json.p[1].v && !json.p[1].v.ask) {
+          if (json.m === "protocol_error") {
+            res({
+              err: "protocol_error",
+              price: undefined,
+              ch: undefined,
+              chp: undefined,
+              volume: undefined
+            });
+            ws.close();
+            break;
+          }
+          if (json.p && json.p[1] && json.p[1].v && !(json.p[1].v.ask || json.p[1].v.ask === 0)) {
             const stock = json.p[1].v;
             res({
+              err: undefined,
               price: stock?.lp,
               ch: stock?.ch,
               chp: stock?.chp,
@@ -187,6 +245,7 @@ function get(ws: WebSocket): Promise<{
     }
     ws.onerror = function (err) {
       rej(err);
+      ws.close();
     }
   });
 }

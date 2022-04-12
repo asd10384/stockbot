@@ -14,7 +14,7 @@ export default async function getexrate(market: market, money: number | undefine
   if (!money) return [ undefined, "돈을 입력하지 않음" ];
   if (market === "KRX") return [ money, undefined ];
   if (!exchangeratesapikey || exchangeratesapikey.length === 0) return [ undefined, "API키를 찾을수 없음" ];
-  const val: { [key: string]: any, data?: any } = axios.get(`http://api.exchangeratesapi.io/v1/latest?access_key=${exchangeratesapikey}`, {
+  const val: { [key: string]: any, data?: any } = await axios.get(`http://api.exchangeratesapi.io/v1/latest?access_key=${exchangeratesapikey}`, {
     responseType: "json",
     timeout: 3000
   }).catch((err) => {
