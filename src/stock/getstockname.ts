@@ -29,7 +29,7 @@ export async function getstocknamelist(text: string, type: "stock", exchange: ma
     return {
       country: data.country,
       currency_code: data.currency_code,
-      description: data.description.replace(/\<\/?em\>/g,""),
+      description: data.description.replace(/\<\/?em\>/g,"").replace(/^(\s|\,|\.)+|(보통주|Inc|\,|\.|\s)+$/g,""),
       exchange: data.exchange,
       logoid: data.logoid,
       provider_id: data.provider_id,
@@ -48,8 +48,6 @@ export async function getstockname(text: string, type: "stock", exchange: market
   var overcount = 0;
   var text2 = "";
   const list = getlist.map((data) => {
-    data.description = data.description.trim().endsWith("보통주") ? data.description.replace("보통주", "").trim() : data.description;
-    data.description = data.description.trim().endsWith("Inc.") ? data.description.replace("Inc.", "").trim() : data.description;
     return data;
   });
   for (let i in list) {

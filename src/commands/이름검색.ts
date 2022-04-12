@@ -49,6 +49,17 @@ export default class StockCommand implements Command {
           description: "주식이름을 입력해주세요.",
           required: true
         }]
+      },
+      {
+        type: "SUB_COMMAND",
+        name: "nyse",
+        description: "나스닥에서 검색",
+        options: [{
+          type: "STRING",
+          name: "주식이름",
+          description: "주식이름을 입력해주세요.",
+          required: true
+        }]
       }
     ]
   };
@@ -60,18 +71,22 @@ export default class StockCommand implements Command {
     {
       name: "이름검색 나스닥 [주식이름]",
       des: "입력한 값이 들어간 [나스닥] 주식들을 알려줍니다."
+    },
+    {
+      name: "이름검색 NYSE [주식이름]",
+      des: "입력한 값이 들어간 [나스닥] 주식들을 알려줍니다."
     }
   ];
 
   /** 실행되는 부분 */
   async slashrun(interaction: I) {
-    const getmarket = interaction.options.getSubcommand(true) as "한국" | "나스닥";
-    const market: market = getmarket === "한국" ? "KRX" : "NASDAQ";
+    const getmarket = interaction.options.getSubcommand(true).toUpperCase() as "한국" | "나스닥" | "NYSE";
+    const market: market = getmarket === "한국" ? "KRX" : getmarket === "나스닥" ? "NASDAQ" : "NYSE";
     return await interaction.editReply({ embeds: [ await this.searchname(market, interaction.options.getString("주식이름", true)) ] });
   }
   async msgrun(message: M, args: string[]) {
     const getmarket = args[0];
-    const market: market | undefined = getmarket === "한국" ? "KRX" : getmarket === "나스닥" ? "NASDAQ" : undefined;
+    const market: market | undefined = getmarket ? getmarket === "한국" ? "KRX" : getmarket === "나스닥" ? "NASDAQ" : getmarket.toUpperCase() === "NYSE" ? "NYSE" : undefined : undefined;
     if (market) return message.channel.send({ embeds: [ await this.searchname(market, args.slice(1).join(" ")) ] });
     return message.channel.send({ embeds: [ this.help() ] });
   }

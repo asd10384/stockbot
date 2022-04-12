@@ -94,8 +94,7 @@ export default class StockCommand implements Command {
       image: img[0],
       footer: { text: market }
     });
-    let realprice = "원";
-    if (market === "NASDAQ") realprice = "달러";
+    let realprice = stock.currency_code === "KRW" ? "원" : "달러";
     embed.addFields([
       {
         name: `**원가(${realprice})**`,
